@@ -1,6 +1,5 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const os = require('node:os');
 const axios = require('axios');
 
 const WHITELISTS_DIR = path.join(__dirname, 'whitelists');
@@ -37,8 +36,13 @@ const getDomainsFromFile = async file =>
 
 const getAllDomains = async dir => {
 	const files = await fs.promises.readdir(dir);
-	const sets = await Promise.all(files.map(async file => new Set(await getDomainsFromFile(path.join(dir, file)))));
-	return Array.from(new Set(sets.flatMap(set => [...set])));
+	const domainsSet = new Set();
+	for (const file of files) {
+		const fullPath = path.join(dir, file);
+		const domains = await getDomainsFromFile(fullPath);
+		for (const domain of domains) domainsSet.add(domain);
+	}
+	return Array.from(domainsSet);
 };
 
 const checkDomain = async domain => {
@@ -47,47 +51,32 @@ const checkDomain = async domain => {
 			await axios.get(`${proto}://${domain}`, { timeout: 4000 });
 			return { domain, status: 'ok' };
 		} catch (err) {
-			if (err.code === 'ENOTFOUND' || err.code === 'EAI_AGAIN')
-			{return { domain, status: 'warn', error: err.code };}
+			if (err.code === 'ENOTFOUND' || err.code === 'EAI_AGAIN') return { domain, status: 'warn', error: err.code };
 			if (err.response) return { domain, status: 'ok' };
 		}
 	}
 	return { domain, status: 'error', error: 'not reachable' };
 };
 
-const mapLimit = async (items, limit, fn) => {
-	const results = [];
-	let idx = 0;
-	const exec = async () => {
-		while (idx < items.length) {
-			const i = idx++;
-			results[i] = await fn(items[i]);
-		}
-	};
-	await Promise.all(Array(limit).fill(0).map(exec));
-	return results;
-};
-
 const main = async () => {
 	await ensureDir(WHITELISTS_DIR);
 
-	await Promise.all(urls.map(async url => {
+	for (const url of urls) {
 		try {
 			await downloadFile(url, WHITELISTS_DIR);
 			console.log(`[INFO] Downloaded: ${url}`);
 		} catch (err) {
 			console.log(`[WARN] Download failed: ${url} (${err.message})`);
 		}
-	}));
+	}
 
 	const domains = await getAllDomains(WHITELISTS_DIR);
 	console.log(`[INFO] Found ${domains.length} domains`);
 
-	const concurrency = Math.min(os.cpus().length, 8);
-	const results = await mapLimit(domains, concurrency, checkDomain);
-	for (const res of results) {
+	for (const domain of domains) {
+		const res = await checkDomain(domain);
 		if (res.status === 'ok') {
-			console.log(`[OK]    ${res.domain}`);
+			console.log(`[OK]   ${res.domain}`);
 		} else if (res.status === 'warn') {
 			console.log(`[WARN]  ${res.domain} (${res.error})`);
 		} else {
