@@ -25,7 +25,7 @@ const downloadFile = async (url, dir) => {
 const extractDomain = line => {
 	line = line.trim();
 	if (!line || line.startsWith('#')) return null;
-	const match = line.match(/^(?:0\.0\.0\.0|127\.0\.0\.1)?\s*([a-zA-Z0-9\-\._]+\.[a-zA-Z]{2,})/);
+	const match = line.match(/^(?:0\.0\.0\.0|127\.0\.0\.1)?\s*([a-zA-Z0-9\-\\._]+\.[a-zA-Z]{2,})/);
 	return match ? match[1] : null;
 };
 
