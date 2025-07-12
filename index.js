@@ -4,7 +4,7 @@ const axios = require('axios');
 
 const WHITELISTS_DIR = path.join(__dirname, 'whitelists');
 const urls = [
-	'https://raw.githubusercontent.com/anudeepND/whitelist/refs/heads/master/domains/whitelist.txt',
+	'',
 ];
 
 const ensureDir = dir => fs.promises.mkdir(dir, { recursive: true });
