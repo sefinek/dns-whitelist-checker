@@ -76,20 +76,22 @@ const main = async () => {
 		try {
 			await downloadFile(url, WHITELISTS_DIR);
 			console.log(`[INFO] Downloaded: ${url}`);
-		} catch (e) {
-			console.log(`[WARN] Download failed: ${url} (${e.message})`);
+		} catch (err) {
+			console.log(`[WARN] Download failed: ${url} (${err.message})`);
 		}
 	}));
+
 	const domains = await getAllDomains(WHITELISTS_DIR);
 	const concurrency = Math.min(os.cpus().length, 8);
 	const results = await mapLimit(domains, concurrency, checkDomain);
 	for (const res of results) {
-		if (res.status === 'ok')
-		{console.log(`[OK]    ${res.domain}`);}
-		else if (res.status === 'warn')
-		{console.log(`[WARN]  ${res.domain} (${res.error})`);}
-		else
-		{console.log(`[ERROR] ${res.domain} (${res.error})`);}
+		if (res.status === 'ok') {
+			console.log(`[OK]    ${res.domain}`);
+		} else if (res.status === 'warn') {
+			console.log(`[WARN]  ${res.domain} (${res.error})`);
+		} else {
+			console.log(`[ERROR] ${res.domain} (${res.error})`);
+		}
 	}
 };
 
