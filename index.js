@@ -5,7 +5,7 @@ const axios = require('axios');
 
 const WHITELISTS_DIR = path.join(__dirname, 'whitelists');
 const urls = [
-
+	'https://raw.githubusercontent.com/anudeepND/whitelist/refs/heads/master/domains/whitelist.txt',
 ];
 
 const ensureDir = dir => fs.promises.mkdir(dir, { recursive: true });
@@ -37,9 +37,7 @@ const getDomainsFromFile = async file =>
 
 const getAllDomains = async dir => {
 	const files = await fs.promises.readdir(dir);
-	const sets = await Promise.all(
-		files.map(async file => new Set(await getDomainsFromFile(path.join(dir, file))))
-	);
+	const sets = await Promise.all(files.map(async file => new Set(await getDomainsFromFile(path.join(dir, file)))));
 	return Array.from(new Set(sets.flatMap(set => [...set])));
 };
 
@@ -72,6 +70,7 @@ const mapLimit = async (items, limit, fn) => {
 
 const main = async () => {
 	await ensureDir(WHITELISTS_DIR);
+
 	await Promise.all(urls.map(async url => {
 		try {
 			await downloadFile(url, WHITELISTS_DIR);
@@ -82,6 +81,8 @@ const main = async () => {
 	}));
 
 	const domains = await getAllDomains(WHITELISTS_DIR);
+	console.log(`[INFO] Found ${domains.length} domains`);
+
 	const concurrency = Math.min(os.cpus().length, 8);
 	const results = await mapLimit(domains, concurrency, checkDomain);
 	for (const res of results) {
